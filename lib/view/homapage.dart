@@ -6,7 +6,6 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:record/record.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:voice_rec_flutter/model/audio.dart';
@@ -24,7 +23,9 @@ List<Audio> audios = [];
 class _HomepageState extends State<Homepage> {
   final recorder = FlutterSoundRecorder();
   bool isRecorderReady = false;
-  late File audioFile;
+  File? audioFile;
+
+  String audioFilePath2 = "";
 
   // final AudioRecorder _audioRecorder = AudioRecorder();
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -120,8 +121,12 @@ class _HomepageState extends State<Homepage> {
 
   Future<void> playRecording(String filePath) async {
     try {
-      await _audioPlayer.play(DeviceFileSource(audioFile.path));
-      // _audioPlayer.setSourceUrl(audioFile.path);
+      if (audioFile != null) {
+        print("file path:: ${audioFile!.path}");
+        await _audioPlayer.play(DeviceFileSource(audioFile!.path.toString()));
+      } else {
+        print("Audio file is null.");
+      }
     } catch (e) {
       if (kDebugMode) {
         print(e);
@@ -146,7 +151,9 @@ class _HomepageState extends State<Homepage> {
     }
 
     final path = await recorder.stopRecorder();
-    audioFile = File(path!);
+    audioFilePath2 = path!;
+    audioFile = File(path);
+    setState(() {});
     print('Recorded audio: $audioFile');
   }
 
@@ -177,7 +184,8 @@ class _HomepageState extends State<Homepage> {
               //   ),
               // ),
               SpokenWords(
-                spokenWords: _speechToText.isListening
+                // spokenWords: _wordsSpoken,
+                spokenWords: recorder.isRecording
                     ? _wordsSpoken
                     : _speechEnabled
                         ? _wordsSpoken
