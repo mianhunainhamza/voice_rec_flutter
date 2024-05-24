@@ -1,12 +1,16 @@
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter_sound/flutter_sound.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:voice_rec_flutter/model/audio.dart';
+import 'package:voice_rec_flutter/widgets/spoken_words.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -18,7 +22,11 @@ class Homepage extends StatefulWidget {
 List<Audio> audios = [];
 
 class _HomepageState extends State<Homepage> {
-  final AudioRecorder _audioRecorder = AudioRecorder();
+  final recorder = FlutterSoundRecorder();
+  bool isRecorderReady = false;
+  late File audioFile;
+
+  // final AudioRecorder _audioRecorder = AudioRecorder();
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool isRecording = false;
   String audioFilePath = "";
@@ -33,6 +41,13 @@ class _HomepageState extends State<Homepage> {
   void initState() {
     super.initState();
     initSpeech();
+    initRecorder();
+  }
+
+  @override
+  void dispose() {
+    recorder.closeRecorder();
+    super.dispose();
   }
 
   void initSpeech() async {
@@ -42,22 +57,22 @@ class _HomepageState extends State<Homepage> {
 
   Future<void> _startListening() async {
     try {
-      Directory directory = await getApplicationDocumentsDirectory();
-      String fileName =
-          'recording_${DateTime.now().millisecondsSinceEpoch}.mp4';
-      String tempPath = '${directory.path}/$fileName';
+      // Directory directory = await getApplicationDocumentsDirectory();
+      // String fileName =
+      //     'recording_${DateTime.now().millisecondsSinceEpoch}.mp4';
+      // String tempPath = '${directory.path}/$fileName';
+
+      // const config = RecordConfig(
+      //   encoder: AudioEncoder.aacLc,
+      //   sampleRate: 44100,
+      //   bitRate: 128000,
+      // );
 
       await _speechToText.listen(onResult: onSpeechResult);
-      await _audioRecorder.start(
-          const RecordConfig(
-            encoder: AudioEncoder.aacLc,
-            sampleRate: 44100,
-            bitRate: 128000,
-          ),
-          path: tempPath);
+      // await _audioRecorder.start(config, path: tempPath);
       setState(() {
         isRecording = true;
-        audioFilePath = tempPath;
+        // audioFilePath = tempPath;
       });
     } catch (e) {
       print("Error starting recording: $e");
@@ -66,16 +81,17 @@ class _HomepageState extends State<Homepage> {
 
   Future<void> _stopListening() async {
     try {
-      final path = await _audioRecorder.stop();
+      // final path = await _audioRecorder.stop();
+
       await _speechToText.stop();
 
-      if (path == null) {
-        throw Exception("Failed to stop recording. The path is null.");
-      }
+      // if (path == null) {
+      //   throw Exception("Failed to stop recording. The path is null.");
+      // }
 
       setState(() {
         isRecording = false;
-        audioFilePath = path;
+        // audioFilePath = path;
       });
 
       Audio audio = Audio(id: 1, name: "myAudio", audioUrlPath: audioFilePath);
@@ -98,12 +114,41 @@ class _HomepageState extends State<Homepage> {
 
   Future<void> playRecording(String filePath) async {
     try {
-      await _audioPlayer.play(DeviceFileSource(filePath));
+      await _audioPlayer.play(DeviceFileSource(audioFile.path));
+      // _audioPlayer.setSourceUrl(audioFile.path);
     } catch (e) {
       if (kDebugMode) {
         print(e);
       }
     }
+  }
+
+  Future<void> initRecorder() async {
+    final status = await Permission.microphone.request();
+
+    if (status != PermissionStatus.granted) {
+      throw "Microphone permission not granted";
+    }
+
+    isRecorderReady = true;
+    await recorder.openRecorder();
+  }
+
+  Future<void> stopRecorder() async {
+    if (!isRecorderReady) {
+      return;
+    }
+
+    final path = await recorder.stopRecorder();
+    audioFile = File(path!);
+    print('Recorded audio: $audioFile');
+  }
+
+  Future<void> startRecorder() async {
+    if (!isRecorderReady) {
+      return;
+    }
+    await recorder.startRecorder(toFile: 'audio');
   }
 
   @override
@@ -114,16 +159,23 @@ class _HomepageState extends State<Homepage> {
         child: Center(
           child: Column(
             children: [
-              Container(
-                padding: const EdgeInsets.fromLTRB(26, 56, 26, 10),
-                child: Text(
-                  _speechToText.isListening
-                      ? _wordsSpoken
-                      : _speechEnabled
-                          ? _wordsSpoken
-                          : "Speech not available.",
-                  style: const TextStyle(fontSize: 18),
-                ),
+              // Container(
+              //   padding: const EdgeInsets.fromLTRB(26, 56, 26, 10),
+              //   child: Text(
+              //     _speechToText.isListening
+              //         ? _wordsSpoken
+              //         : _speechEnabled
+              //             ? _wordsSpoken
+              //             : "Speech not available.",
+              //     style: const TextStyle(fontSize: 18),
+              //   ),
+              // ),
+              SpokenWords(
+                spokenWords: _speechToText.isListening
+                    ? _wordsSpoken
+                    : _speechEnabled
+                        ? _wordsSpoken
+                        : "Speech not available.",
               ),
               ElevatedButton(
                 onPressed: () {},
@@ -202,8 +254,14 @@ class _HomepageState extends State<Homepage> {
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.deepPurple,
-        onPressed: () {
+        onPressed: () async {
           _speechToText.isListening ? _stopListening() : _startListening();
+          recorder.isRecording ? await stopRecorder() : await startRecorder();
+          // if (recorder.isRecording) {
+          //   await stopRecorder();
+          // } else {
+          //   await startRecorder();
+          // }
         },
         tooltip: "Listen",
         shape: RoundedRectangleBorder(
