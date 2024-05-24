@@ -94,7 +94,13 @@ class _HomepageState extends State<Homepage> {
         // audioFilePath = path;
       });
 
-      Audio audio = Audio(id: 1, name: "myAudio", audioUrlPath: audioFilePath);
+      // Process the recorded audio file and handle it accordingly
+      // (e.g., save to storage, display in UI)
+      Audio audio = Audio(
+        id: 1,
+        name: "myAudio",
+        audioUrlPath: audioFilePath,
+      );
 
       setState(() {
         audios.add(audio);
