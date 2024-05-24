@@ -1,5 +1,4 @@
-# voice_rec_flutter
-
+# Speech to Text
 An app in which you can convert real time speech into text.
 
 ## Getting Started
