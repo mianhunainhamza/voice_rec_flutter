@@ -50,7 +50,7 @@ class _HomepageState extends State<Homepage> {
       await _speechToText.listen(onResult: onSpeechResult);
       await _audioRecorder.start(
           const RecordConfig(
-            encoder: AudioEncoder.aacLc,
+            encoder: AudioEncoder.wav,
             sampleRate: 44100,
             bitRate: 128000,
           ),
@@ -120,8 +120,8 @@ class _HomepageState extends State<Homepage> {
                   _speechToText.isListening
                       ? _wordsSpoken
                       : _speechEnabled
-                          ? _wordsSpoken
-                          : "Speech not available.",
+                      ? _wordsSpoken
+                      : "Speech not available.",
                   style: const TextStyle(fontSize: 18),
                 ),
               ),
