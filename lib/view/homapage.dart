@@ -1,9 +1,11 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:percent_indicator/linear_percent_indicator.dart';
 import 'package:record/record.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:voice_rec_flutter/model/audio.dart';
 
 class Homepage extends StatefulWidget {
@@ -20,8 +22,11 @@ class _HomepageState extends State<Homepage> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool isRecording = false;
   String audioFilePath = "";
+
   final SpeechToText _speechToText = SpeechToText();
+
   bool _speechEnabled = false;
+
   String _wordsSpoken = "Start Recording";
 
   @override
@@ -37,12 +42,22 @@ class _HomepageState extends State<Homepage> {
 
   Future<void> _startListening() async {
     try {
+      Directory directory = await getApplicationDocumentsDirectory();
+      String fileName =
+          'recording_${DateTime.now().millisecondsSinceEpoch}.mp4';
+      String tempPath = '${directory.path}/$fileName';
+
       await _speechToText.listen(onResult: onSpeechResult);
-      final appDocDir = await getApplicationDocumentsDirectory();
-      final filePath = '${appDocDir.path}/myAudio.mp4';
-      await _audioRecorder.start(const RecordConfig(), path: filePath);
+      await _audioRecorder.start(
+          const RecordConfig(
+            encoder: AudioEncoder.aacLc,
+            sampleRate: 44100,
+            bitRate: 128000,
+          ),
+          path: tempPath);
       setState(() {
         isRecording = true;
+        audioFilePath = tempPath;
       });
     } catch (e) {
       print("Error starting recording: $e");
@@ -68,9 +83,7 @@ class _HomepageState extends State<Homepage> {
       setState(() {
         audios.add(audio);
       });
-      if (kDebugMode) {
-        print(audios);
-      }
+      print(audios);
     } catch (e) {
       print("Error stopping recording: $e");
     }
@@ -80,6 +93,7 @@ class _HomepageState extends State<Homepage> {
     setState(() {
       _wordsSpoken = result.recognizedWords;
     });
+    setState(() {});
   }
 
   Future<void> playRecording(String filePath) async {
@@ -111,33 +125,73 @@ class _HomepageState extends State<Homepage> {
                   style: const TextStyle(fontSize: 18),
                 ),
               ),
-              const SizedBox(height: 20,),
+              ElevatedButton(
+                onPressed: () {},
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                ),
+                child: const Text(
+                  "Translate",
+                  style: TextStyle(
+                    color: Colors.white,
+                  ),
+                ),
+              ),
               SizedBox(
                 height: MediaQuery.of(context).size.height * 0.6,
                 width: MediaQuery.of(context).size.width,
                 child: ListView.builder(
                   itemCount: audios.length,
                   itemBuilder: (context, index) {
-                    return ListTile(
-                      title: Text(audios[index].name),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            onPressed: () =>
-                                playRecording(audios[index].audioUrlPath),
-                            icon: const Icon(Icons.play_arrow),
+                    return Column(
+                      children: [
+                        ListTile(
+                          title: Text(audios[index].name),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.cyan,
+                                ),
+                                onPressed: () =>
+                                    playRecording(audios[index].audioUrlPath),
+                                icon: const Icon(
+                                  Icons.play_arrow,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              IconButton(
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    audios.removeAt(index);
+                                  });
+                                },
+                                icon: const Icon(
+                                  Icons.delete_forever,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
                           ),
-                          IconButton(
-                            onPressed: () {
-                              setState(() {
-                                audios.removeAt(index);
-                              });
-                            },
-                            icon: const Icon(Icons.delete),
+                        ),
+                        const SizedBox(height: 5),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 0, 10, 26),
+                          child: LinearPercentIndicator(
+                            width: MediaQuery.sizeOf(context).width - 25,
+                            lineHeight: 8.0,
+                            percent: 0.5,
+                            progressColor: Colors.blue,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     );
                   },
                 ),
