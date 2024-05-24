@@ -1,10 +1,9 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:speech_to_text/speech_to_text.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:voice_rec_flutter/model/audio.dart';
 
 class Homepage extends StatefulWidget {
@@ -41,20 +40,17 @@ class _HomepageState extends State<Homepage> {
 
   Future<void> _startListening() async {
     try {
-      Directory tempDir = await getTemporaryDirectory();
-      String tempPath = '${tempDir.path}/myAudio.mp4';
-
       await _speechToText.listen(onResult: onSpeechResult);
-      await _audioRecorder.start(const RecordConfig(), path: tempPath);
+      final tempDir = await getTemporaryDirectory();
+      final filePath = '${tempDir.path}/myAudio.mp4';
+      await _audioRecorder.start(const RecordConfig(), path: filePath);
       setState(() {
         isRecording = true;
-        audioFilePath = tempPath;
       });
     } catch (e) {
       print("Error starting recording: $e");
     }
   }
-
   Future<void> _stopListening() async {
     try {
       final path = await _audioRecorder.stop();
@@ -110,8 +106,8 @@ class _HomepageState extends State<Homepage> {
                   _speechToText.isListening
                       ? _wordsSpoken
                       : _speechEnabled
-                      ? _wordsSpoken
-                      : "Speech not available.",
+                          ? _wordsSpoken
+                          : "Speech not available.",
                   style: const TextStyle(fontSize: 18),
                 ),
               ),
