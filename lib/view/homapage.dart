@@ -47,14 +47,22 @@ class _HomepageState extends State<Homepage> {
           'recording_${DateTime.now().millisecondsSinceEpoch}.mp4';
       String tempPath = '${directory.path}/$fileName';
 
-      await _speechToText.listen(onResult: onSpeechResult);
+      // Start recording audio
       await _audioRecorder.start(
-          const RecordConfig(
-            encoder: AudioEncoder.wav,
-            sampleRate: 44100,
-            bitRate: 128000,
-          ),
-          path: tempPath);
+        const RecordConfig(
+          encoder: AudioEncoder.wav,
+          sampleRate: 44100,
+          bitRate: 128000,
+        ),
+        path: tempPath,
+      );
+
+      // Start listening for speech and handle real-time conversion
+      await _speechToText.listen(
+        onResult: onSpeechResult,
+        listenFor: Duration(hours: 1), // Adjust the duration as needed
+      );
+
       setState(() {
         isRecording = true;
         audioFilePath = tempPath;
@@ -66,6 +74,7 @@ class _HomepageState extends State<Homepage> {
 
   Future<void> _stopListening() async {
     try {
+      // Stop both audio recording and speech-to-text conversion
       final path = await _audioRecorder.stop();
       await _speechToText.stop();
 
@@ -78,7 +87,13 @@ class _HomepageState extends State<Homepage> {
         audioFilePath = path;
       });
 
-      Audio audio = Audio(id: 1, name: "myAudio", audioUrlPath: audioFilePath);
+      // Process the recorded audio file and handle it accordingly
+      // (e.g., save to storage, display in UI)
+      Audio audio = Audio(
+        id: 1,
+        name: "myAudio",
+        audioUrlPath: audioFilePath,
+      );
 
       setState(() {
         audios.add(audio);
