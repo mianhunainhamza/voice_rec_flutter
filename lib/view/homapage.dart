@@ -1,14 +1,11 @@
 import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:record/record.dart';
 import 'package:speech_to_text/speech_to_text.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:voice_rec_flutter/model/audio.dart';
 import 'package:voice_rec_flutter/widgets/spoken_words.dart';
 
@@ -24,7 +21,7 @@ List<Audio> audios = [];
 class _HomepageState extends State<Homepage> {
   final recorder = FlutterSoundRecorder();
   bool isRecorderReady = false;
-  late File audioFile;
+  File? audioFile;
 
   // final AudioRecorder _audioRecorder = AudioRecorder();
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -120,7 +117,7 @@ class _HomepageState extends State<Homepage> {
 
   Future<void> playRecording(String filePath) async {
     try {
-      await _audioPlayer.play(DeviceFileSource(audioFile.path));
+      await _audioPlayer.play(DeviceFileSource(audioFile!.path));
       // _audioPlayer.setSourceUrl(audioFile.path);
     } catch (e) {
       if (kDebugMode) {
@@ -138,6 +135,7 @@ class _HomepageState extends State<Homepage> {
 
     isRecorderReady = true;
     await recorder.openRecorder();
+    setState(() {});
   }
 
   Future<void> stopRecorder() async {
@@ -148,6 +146,7 @@ class _HomepageState extends State<Homepage> {
     final path = await recorder.stopRecorder();
     audioFile = File(path!);
     print('Recorded audio: $audioFile');
+    setState(() {});
   }
 
   Future<void> startRecorder() async {
@@ -155,6 +154,7 @@ class _HomepageState extends State<Homepage> {
       return;
     }
     await recorder.startRecorder(toFile: 'audio');
+    setState(() {});
   }
 
   @override
@@ -261,7 +261,9 @@ class _HomepageState extends State<Homepage> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.deepPurple,
         onPressed: () async {
-          _speechToText.isListening ? _stopListening() : _startListening();
+          _speechToText.isListening
+              ? await _stopListening()
+              : await _startListening();
           recorder.isRecording ? await stopRecorder() : await startRecorder();
           // if (recorder.isRecording) {
           //   await stopRecorder();
