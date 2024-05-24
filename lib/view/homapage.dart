@@ -20,11 +20,8 @@ class _HomepageState extends State<Homepage> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool isRecording = false;
   String audioFilePath = "";
-
   final SpeechToText _speechToText = SpeechToText();
-
   bool _speechEnabled = false;
-
   String _wordsSpoken = "Start Recording";
 
   @override
@@ -41,8 +38,8 @@ class _HomepageState extends State<Homepage> {
   Future<void> _startListening() async {
     try {
       await _speechToText.listen(onResult: onSpeechResult);
-      final tempDir = await getTemporaryDirectory();
-      final filePath = '${tempDir.path}/myAudio.mp4';
+      final appDocDir = await getApplicationDocumentsDirectory();
+      final filePath = '${appDocDir.path}/myAudio.mp4';
       await _audioRecorder.start(const RecordConfig(), path: filePath);
       setState(() {
         isRecording = true;
@@ -51,6 +48,7 @@ class _HomepageState extends State<Homepage> {
       print("Error starting recording: $e");
     }
   }
+
   Future<void> _stopListening() async {
     try {
       final path = await _audioRecorder.stop();
@@ -70,7 +68,9 @@ class _HomepageState extends State<Homepage> {
       setState(() {
         audios.add(audio);
       });
-      print(audios);
+      if (kDebugMode) {
+        print(audios);
+      }
     } catch (e) {
       print("Error stopping recording: $e");
     }
@@ -111,21 +111,7 @@ class _HomepageState extends State<Homepage> {
                   style: const TextStyle(fontSize: 18),
                 ),
               ),
-              ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                ),
-                child: const Text(
-                  "Translate",
-                  style: TextStyle(
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+              const SizedBox(height: 20,),
               SizedBox(
                 height: MediaQuery.of(context).size.height * 0.6,
                 width: MediaQuery.of(context).size.width,
