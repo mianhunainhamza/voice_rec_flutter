@@ -41,11 +41,19 @@ class _HomepageState extends State<Homepage> {
 
   Future<void> _startListening() async {
     try {
-      Directory tempDir = await getTemporaryDirectory();
-      String tempPath = '${tempDir.path}/myAudio.mp4';
+      Directory directory = await getApplicationDocumentsDirectory();
+      String fileName =
+          'recording_${DateTime.now().millisecondsSinceEpoch}.mp4';
+      String tempPath = '${directory.path}/$fileName';
 
       await _speechToText.listen(onResult: onSpeechResult);
-      await _audioRecorder.start(const RecordConfig(), path: tempPath);
+      await _audioRecorder.start(
+          const RecordConfig(
+            encoder: AudioEncoder.aacLc,
+            sampleRate: 44100,
+            bitRate: 128000,
+          ),
+          path: tempPath);
       setState(() {
         isRecording = true;
         audioFilePath = tempPath;
@@ -84,6 +92,7 @@ class _HomepageState extends State<Homepage> {
     setState(() {
       _wordsSpoken = result.recognizedWords;
     });
+    setState(() {});
   }
 
   Future<void> playRecording(String filePath) async {
@@ -110,8 +119,8 @@ class _HomepageState extends State<Homepage> {
                   _speechToText.isListening
                       ? _wordsSpoken
                       : _speechEnabled
-                      ? _wordsSpoken
-                      : "Speech not available.",
+                          ? _wordsSpoken
+                          : "Speech not available.",
                   style: const TextStyle(fontSize: 18),
                 ),
               ),
