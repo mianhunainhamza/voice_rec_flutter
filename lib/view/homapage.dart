@@ -7,6 +7,7 @@ import 'package:percent_indicator/linear_percent_indicator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:voice_rec_flutter/model/audio.dart';
+import 'package:voice_rec_flutter/widgets/bottom_navigation_bar.dart';
 import 'package:voice_rec_flutter/widgets/spoken_words.dart';
 
 class Homepage extends StatefulWidget {
@@ -93,10 +94,11 @@ class _HomepageState extends State<Homepage> {
 
       // Process the recorded audio file and handle it accordingly
       // (e.g., save to storage, display in UI)
+      print(audioFile!.path);
       Audio audio = Audio(
         id: 1,
         name: "myAudio",
-        audioUrlPath: audioFilePath,
+        audioUrlPath: audioFile!.path,
       );
 
       setState(() {
@@ -145,7 +147,7 @@ class _HomepageState extends State<Homepage> {
 
     final path = await recorder.stopRecorder();
     audioFile = File(path!);
-    print('Recorded audio: $audioFile');
+    print('Recorded audio: ${audioFile!.path}');
     setState(() {});
   }
 
@@ -160,7 +162,10 @@ class _HomepageState extends State<Homepage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+      ),
       body: SingleChildScrollView(
         child: Center(
           child: Column(
@@ -258,6 +263,7 @@ class _HomepageState extends State<Homepage> {
           ),
         ),
       ),
+      bottomNavigationBar: const MyBottomNavigationBar(),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.deepPurple,
         onPressed: () async {
