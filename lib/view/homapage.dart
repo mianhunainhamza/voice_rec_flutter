@@ -9,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:voice_rec_flutter/model/audio.dart';
+import 'package:voice_rec_flutter/widgets/bottom_navigation_bar.dart';
 import 'package:voice_rec_flutter/widgets/spoken_words.dart';
 
 class Homepage extends StatefulWidget {
@@ -167,7 +168,10 @@ class _HomepageState extends State<Homepage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+      ),
       body: SingleChildScrollView(
         child: Center(
           child: Column(
@@ -266,6 +270,7 @@ class _HomepageState extends State<Homepage> {
           ),
         ),
       ),
+      bottomNavigationBar: const MyBottomNavigationBar(),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.deepPurple,
         onPressed: () async {
