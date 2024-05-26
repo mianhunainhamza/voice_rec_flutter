@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -6,9 +8,9 @@ import 'package:flutter_sound/flutter_sound.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_to_text.dart';
-import 'package:voice_rec_flutter/model/audio.dart';
-import 'package:voice_rec_flutter/widgets/bottom_navigation_bar.dart';
 import 'package:voice_rec_flutter/widgets/spoken_words.dart';
+import '../model/audio.dart';
+import '../widgets/bottom_navigation_bar.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -17,24 +19,17 @@ class Homepage extends StatefulWidget {
   State<Homepage> createState() => _HomepageState();
 }
 
-List<Audio> audios = [];
-
 class _HomepageState extends State<Homepage> {
   final recorder = FlutterSoundRecorder();
-  bool isRecorderReady = false;
-  File? audioFile;
-
-  // final AudioRecorder _audioRecorder = AudioRecorder();
-  final AudioPlayer _audioPlayer = AudioPlayer();
-  bool isRecording = false;
-  String audioFilePath = "";
-
   final SpeechToText _speechToText = SpeechToText();
-
-  bool _speechEnabled = false;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   String _wordsSpoken = "Start Recording";
+  List<Audio> audios = [];
+  File? audioFile;
 
+  bool _speechEnabled = false;
+  bool loading = false;
   @override
   void initState() {
     super.initState();
@@ -45,87 +40,8 @@ class _HomepageState extends State<Homepage> {
   @override
   void dispose() {
     recorder.closeRecorder();
+    _speechToText.cancel();
     super.dispose();
-  }
-
-  void initSpeech() async {
-    _speechEnabled = await _speechToText.initialize();
-    setState(() {});
-  }
-
-  Future<void> _startListening() async {
-    try {
-      // Directory directory = await getApplicationDocumentsDirectory();
-      // String fileName =
-      //     'recording_${DateTime.now().millisecondsSinceEpoch}.mp4';
-      // String tempPath = '${directory.path}/$fileName';
-
-      // const config = RecordConfig(
-      //   encoder: AudioEncoder.aacLc,
-      //   sampleRate: 44100,
-      //   bitRate: 128000,
-      // );
-
-      await _speechToText.listen(onResult: onSpeechResult);
-      // await _audioRecorder.start(config, path: tempPath);
-      setState(() {
-        isRecording = true;
-        // audioFilePath = tempPath;
-      });
-    } catch (e) {
-      print("Error starting recording: $e");
-    }
-  }
-
-  Future<void> _stopListening() async {
-    try {
-      // final path = await _audioRecorder.stop();
-
-      await _speechToText.stop();
-
-      // if (path == null) {
-      //   throw Exception("Failed to stop recording. The path is null.");
-      // }
-
-      setState(() {
-        isRecording = false;
-        // audioFilePath = path;
-      });
-
-      // Process the recorded audio file and handle it accordingly
-      // (e.g., save to storage, display in UI)
-      print(audioFile!.path);
-      Audio audio = Audio(
-        id: 1,
-        name: "myAudio",
-        audioUrlPath: audioFile!.path,
-      );
-
-      setState(() {
-        audios.add(audio);
-      });
-      print(audios);
-    } catch (e) {
-      print("Error stopping recording: $e");
-    }
-  }
-
-  void onSpeechResult(result) {
-    setState(() {
-      _wordsSpoken = result.recognizedWords;
-    });
-    setState(() {});
-  }
-
-  Future<void> playRecording(String filePath) async {
-    try {
-      await _audioPlayer.play(DeviceFileSource(audioFile!.path));
-      // _audioPlayer.setSourceUrl(audioFile.path);
-    } catch (e) {
-      if (kDebugMode) {
-        print(e);
-      }
-    }
   }
 
   Future<void> initRecorder() async {
@@ -135,27 +51,69 @@ class _HomepageState extends State<Homepage> {
       throw "Microphone permission not granted";
     }
 
-    isRecorderReady = true;
     await recorder.openRecorder();
     setState(() {});
   }
 
-  Future<void> stopRecorder() async {
-    if (!isRecorderReady) {
-      return;
-    }
-
-    final path = await recorder.stopRecorder();
-    audioFile = File(path!);
-    print('Recorded audio: ${audioFile!.path}');
+  void initSpeech() async {
+    _speechEnabled = await _speechToText.initialize();
     setState(() {});
   }
 
-  Future<void> startRecorder() async {
-    if (!isRecorderReady) {
-      return;
+  Future<void> _startListening() async {
+    await _speechToText.listen(onResult: onSpeechResult);
+    setState(() {});
+  }
+
+  Future<void> _stopListening() async {
+    await _speechToText.cancel();
+    await _speechToText.stop();
+    setState(() {});
+  }
+
+  void onSpeechResult(result) {
+    setState(() {
+      _wordsSpoken = result.recognizedWords;
+    });
+    setState(() {});
+  }
+
+  Future<void> playRecording(String filePath, int index) async {
+    try {
+      StreamSubscription? sub;
+      setState(() {
+        audios[index].isPlaying = true;
+      });
+      await _audioPlayer.play(DeviceFileSource(audioFile!.path));
+      sub = _audioPlayer.onPlayerComplete.listen((event) {
+        setState(() {
+          audios[index].isPlaying = false;
+        });
+        sub!.cancel();
+      });
+    } catch (e) {
+      if (kDebugMode) {
+        print(e);
+      }
     }
-    await recorder.startRecorder(toFile: 'audio');
+  }
+
+  Future<void> stopRecorder() async {
+    final path = await recorder.stopRecorder();
+    audioFile = File(path!);
+
+    Audio audio = Audio(
+        id: audios.length + 1,
+        name: "My Audio ${audios.length + 1}",
+        audioUrlPath: path);
+
+    setState(() {
+      audios.add(audio);
+    });
+  }
+
+  Future<void> startRecorder() async {
+    await recorder.startRecorder(bufferSize: 999999, toFile: 'audio');
     setState(() {});
   }
 
@@ -170,38 +128,10 @@ class _HomepageState extends State<Homepage> {
         child: Center(
           child: Column(
             children: [
-              // Container(
-              //   padding: const EdgeInsets.fromLTRB(26, 56, 26, 10),
-              //   child: Text(
-              //     _speechToText.isListening
-              //         ? _wordsSpoken
-              //         : _speechEnabled
-              //             ? _wordsSpoken
-              //             : "Speech not available.",
-              //     style: const TextStyle(fontSize: 18),
-              //   ),
-              // ),
               SpokenWords(
-                spokenWords: _speechToText.isListening
+                spokenWords: _speechToText.isListening || _speechEnabled
                     ? _wordsSpoken
-                    : _speechEnabled
-                        ? _wordsSpoken
-                        : "Speech not available.",
-              ),
-              ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                ),
-                child: const Text(
-                  "Translate",
-                  style: TextStyle(
-                    color: Colors.white,
-                  ),
-                ),
+                    : "Speech not available.",
               ),
               SizedBox(
                 height: MediaQuery.of(context).size.height * 0.6,
@@ -218,14 +148,16 @@ class _HomepageState extends State<Homepage> {
                             children: [
                               IconButton(
                                 style: IconButton.styleFrom(
-                                  backgroundColor: Colors.cyan,
-                                ),
-                                onPressed: () =>
-                                    playRecording(audios[index].audioUrlPath),
-                                icon: const Icon(
-                                  Icons.play_arrow,
-                                  color: Colors.white,
-                                ),
+                                    backgroundColor: Colors.cyan),
+                                onPressed: () => audios.any((e) => e.isPlaying)
+                                    ? null
+                                    : playRecording(
+                                        audios[index].audioUrlPath, index),
+                                icon: audios[index].isPlaying
+                                    ? const Icon(Icons.pause,
+                                        color: Colors.white)
+                                    : const Icon(Icons.play_arrow,
+                                        color: Colors.white),
                               ),
                               IconButton(
                                 style: IconButton.styleFrom(
@@ -267,25 +199,31 @@ class _HomepageState extends State<Homepage> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.deepPurple,
         onPressed: () async {
-          _speechToText.isListening
-              ? await _stopListening()
-              : await _startListening();
-          recorder.isRecording ? await stopRecorder() : await startRecorder();
-          // if (recorder.isRecording) {
-          //   await stopRecorder();
-          // } else {
-          //   await startRecorder();
-          // }
+          if (!loading) {
+            loading = true;
+            if (_speechToText.isListening) {
+              await _stopListening();
+            } else {
+              await _startListening();
+            }
+            if (recorder.isRecording) {
+              await stopRecorder();
+            } else {
+              await startRecorder();
+            }
+            loading = false;
+            setState(() {});
+          }
         },
         tooltip: "Listen",
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10000.0),
         ),
-        child: Icon(
-          _speechToText.isListening ? Icons.square : Icons.circle,
-          color: _speechToText.isListening ? Colors.red : Colors.cyan,
-          size: 20,
-        ),
+        child: loading
+            ? const CupertinoActivityIndicator(color: Colors.white)
+            : Icon(recorder.isRecording ? Icons.square : Icons.circle,
+                color: recorder.isRecording ? Colors.red : Colors.cyan,
+                size: 20),
       ),
     );
   }
