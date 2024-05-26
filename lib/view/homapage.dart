@@ -30,17 +30,18 @@ class _HomepageState extends State<Homepage> {
 
   bool _speechEnabled = false;
   bool loading = false;
+
   @override
   void initState() {
-    super.initState();
-    initSpeech();
     initRecorder();
+    initSpeech();
+    super.initState();
   }
 
   @override
   void dispose() {
     recorder.closeRecorder();
-    _speechToText.cancel();
+    _speechToText.stop();
     super.dispose();
   }
 
@@ -50,9 +51,11 @@ class _HomepageState extends State<Homepage> {
     if (status != PermissionStatus.granted) {
       throw "Microphone permission not granted";
     }
-
-    await recorder.openRecorder();
-    setState(() {});
+    try {
+      await recorder.openRecorder();
+    } catch (e) {
+      print(e);
+    }
   }
 
   void initSpeech() async {
@@ -66,8 +69,9 @@ class _HomepageState extends State<Homepage> {
   }
 
   Future<void> _stopListening() async {
-    await _speechToText.cancel();
+    // await _speechToText.cancel();
     await _speechToText.stop();
+
     setState(() {});
   }
 
@@ -113,7 +117,7 @@ class _HomepageState extends State<Homepage> {
   }
 
   Future<void> startRecorder() async {
-    await recorder.startRecorder(bufferSize: 999999, toFile: 'audio');
+    await recorder.startRecorder(toFile: 'audio');
     setState(() {});
   }
 
