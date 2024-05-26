@@ -75,7 +75,6 @@ class _HomepageState extends State<Homepage> {
     setState(() {
       _wordsSpoken = result.recognizedWords;
     });
-    setState(() {});
   }
 
   Future<void> playRecording(String filePath, int index) async {
