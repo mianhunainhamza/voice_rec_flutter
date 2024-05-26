@@ -41,6 +41,7 @@ class _HomepageState extends State<Homepage> {
   @override
   void dispose() {
     recorder.closeRecorder();
+    _speechToText.cancel();
     _speechToText.stop();
     super.dispose();
   }
@@ -69,9 +70,8 @@ class _HomepageState extends State<Homepage> {
   }
 
   Future<void> _stopListening() async {
-    // await _speechToText.cancel();
+    await _speechToText.cancel();
     await _speechToText.stop();
-
     setState(() {});
   }
 
